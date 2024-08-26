@@ -42,9 +42,8 @@ dbConnect();
 
 waterBillScheduler();
 
-app.get("/", (req, res) => {
-  res.send("Server is running and up");
-});
+
+
 app.use("/api/auth", authRoutes);
 app.use("/api/industry", industryRoutes);
 app.use("/api/zone", zoneRoutes);
