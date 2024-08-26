@@ -152,7 +152,7 @@ router.post("/updateone", authMiddleware, async (req, res) => {
   }
 });
 
-router.get("/getFinances",authMiddleware, async (req, res) => {
+router.get("/getFinances", async (req, res) => {
   try {
     return res.status(200).json(await waterBillFinance.findOne());
   } catch (e) {

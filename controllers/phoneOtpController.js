@@ -1,11 +1,10 @@
 const twilo = require("twilio");
-require("dotenv").config();
 
 const phoneOtp = (otp, phone) => {
   try {
     const client = new twilo(
-      process.env.TWILIO_ACCOUNT_SID,
-      process.env.TWILIO_AUTH_TOKEN
+      "AC064c264b8fa216a1e2dd63f9058ca77d",
+      "db35777f6ed754850a2e0f4e3f409677"
     );
     client.messages.create({
       body: `Your Login Otp is ${otp}`,

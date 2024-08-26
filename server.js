@@ -31,59 +31,19 @@ const io = new Server(server, {
 });
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
+app.use(
+  cors({
+    origin: "*",
+    credentials: true,
+  })
+);
 
 dbConnect();
 
 waterBillScheduler();
 
-app.post("/addzone", async (req, res) => {
-  try {
-    const { zone_id, zone_area, no_Industries_under, zonal_admin_id } =
-      req.body;
-    const newZone = new Zone({
-      zone_id,
-      zone_area,
-      no_Industries_under,
-      zonal_admin_id,
-    });
-    await newZone.save();
-    res.status(200).json({ message: "Zone added successfully" });
-  } catch (e) {
-    console.log(e);
-    res.status(500).json({ message: "something went wrong" });
-  }
-});
-app.post("/addadmin", async (req, res) => {
-  try {
-    const {
-      admin_type,
-      admin_id,
-      admin_name,
-      admin_email,
-      password,
-      admin_dob,
-      phone_number,
-      zone_id,
-    } = req.body;
-    const zoneId = zone_id || null;
-
-    const newAdmin = new Admin({
-      admin_type,
-      admin_id,
-      admin_name,
-      admin_email,
-      password,
-      admin_dob,
-      phone_number,
-      zone_id: zoneId,
-    });
-    await newAdmin.save();
-    res.status(200).json({ message: "Admin added successfully" });
-  } catch (e) {
-    console.log(e);
-    res.status(500).json({ message: "Something went wrong" });
-  }
+app.get("/", (req, res) => {
+  res.send("Server is running and up");
 });
 app.use("/api/auth", authRoutes);
 app.use("/api/industry", industryRoutes);

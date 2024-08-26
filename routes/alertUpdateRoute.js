@@ -1,7 +1,7 @@
 const router = require("express").Router();
 const fs = require("fs");
 const path = require("path");
-const filePath = path.join(__dirname, "../utils/.newsUpdates.json");
+const filePath = path.join(__dirname, "../utils/newsUpdates.json");
 const zAdminAlerts = require("../models/zAdminAlerts");
 const { addAlert } = require("../services/alertService");
 const authMiddleWare = require("../middleware/authMiddleware");
@@ -25,7 +25,7 @@ const writeUpdates = (updates, callback) => {
   });
 };
 
-router.post("/add",authMiddleWare, (req, res) => {
+router.post("/add", authMiddleWare, (req, res) => {
   //MA add news updates endpoint
   const newUpdate = req.body;
   readUpdates((err, updates) => {
@@ -96,7 +96,7 @@ router.get("/:industry_id/alerts-summary", async (req, res) => {
   }
 });
 
-router.post("/:industry_id",authMiddleWare, async (req, res) => {
+router.post("/:industry_id", authMiddleWare, async (req, res) => {
   //add alert(ZA) endpoint
   const industry_id = req.params.industry_id;
   const { title, content, date, zone_id, alert_type } = req.body;

@@ -23,7 +23,8 @@ const { addAlert } = require("../services/alertService");
 const { newIndustryAlert } = require("../utils/constants");
 const authMiddleware = require("../middleware/authMiddleware");
 const sharp = require("sharp");
-
+const { check, validationResult } = require("express-validator");
+const zonalAdminMiddleware = require("../middleware/zonalAdminMiddleware");
 let generateOtp = 0;
 const storage = multer.memoryStorage();
 const upload = multer({
@@ -240,66 +241,91 @@ router.post("/fetch-pdf-zoneId", authMiddleware, async (req, res) => {
   }
 });
 
-router.post("/create", uploadRegister.single("file"), async (req, res) => {
-  try {
-    const {
-      name,
-      email,
-      password,
-      phone_number,
-      industry_name,
-      zone_id,
-      industry_area,
-      plot_number,
-      no_of_employees,
-      no_of_employees_HIM,
-      lessee,
-      item_manufactured,
-      gstin_number,
-      is_registered,
-    } = req.body;
-
-    const existingIndustry = await Industry.findOne({ email });
-    if (existingIndustry) {
-      return res.status(400).json({ message: "Email already exists" });
+router.post(
+  "/create",
+  uploadRegister.single("file"),
+  [
+    check("name").not().isEmpty().withMessage("Name is required"),
+    check("email").isEmail().withMessage("Valid email is required"),
+    check("password")
+      .isLength({ min: 8 })
+      .withMessage("Password must be at least 8 characters long")
+      .matches(/^(?=.*[A-Z])(?=.*[@$!%*?&])/, "i")
+      .withMessage(
+        "Password must contain an uppercase letter and a special character"
+      ),
+    check("phone_number")
+      .matches(/^[6789]\d{9}$/)
+      .withMessage("Enter a valid phone number"),
+    check("gstin_number")
+      .matches(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/)
+      .withMessage("Enter a valid GSTIN number"),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-    const newIndustry = new Industry({
-      name,
-      email,
-      password: hashedPassword,
-      phone_number,
-      industry_name,
-      zone_id,
-      industry_area,
-      plot_number,
-      no_of_employees,
-      no_of_employees_HIM,
-      lessee,
-      item_manufactured,
-      gstin_number,
-      is_registered,
-    });
-    const industryReg = new industryRegDoc({
-      email,
-      zone_id,
-      userAuthFileName: req.file ? req.file.originalname : null,
-      userAuthFile: req.file ? req.file.buffer : null,
-      contentType: req.file ? req.file.mimetype : null,
-    });
+    try {
+      const {
+        name,
+        email,
+        password,
+        phone_number,
+        industry_name,
+        zone_id,
+        industry_area,
+        plot_number,
+        no_of_employees,
+        no_of_employees_HIM,
+        lessee,
+        item_manufactured,
+        gstin_number,
+        is_registered,
+      } = req.body;
 
-    await newIndustry.save();
-    await industryReg.save();
-    mailSender(email, name, industry_name);
+      const existingIndustry = await Industry.findOne({ email });
+      if (existingIndustry) {
+        return res.status(400).json({ message: "Email already exists" });
+      }
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+      const newIndustry = new Industry({
+        name,
+        email,
+        password: hashedPassword,
+        phone_number,
+        industry_name,
+        zone_id,
+        industry_area,
+        plot_number,
+        no_of_employees,
+        no_of_employees_HIM,
+        lessee,
+        item_manufactured,
+        gstin_number,
+        is_registered,
+      });
 
-    res.status(201).json({ message: "Sent for registration successfully" });
-  } catch (error) {
-    console.error("Error creating industry:", error);
-    res.status(500).json({ message: "Server Error" });
+      const industryReg = new industryRegDoc({
+        email,
+        zone_id,
+        userAuthFileName: req.file ? req.file.originalname : null,
+        userAuthFile: req.file ? req.file.buffer : null,
+        contentType: req.file ? req.file.mimetype : null,
+      });
+
+      await newIndustry.save();
+      await industryReg.save();
+      mailSender(email, name, industry_name);
+      res.status(201).json({ message: "Sent for registration successfully" });
+    } catch (error) {
+      console.error("Error creating industry:", error);
+      res.status(500).json({ message: "Server Error" });
+    }
   }
-});
+);
 const SITE_SECRET = process.env.SITE_SECRET;
 router.post("/login", async (req, res) => {
   try {
@@ -547,7 +573,7 @@ router.get("/get-admin-id", authMiddleware, async (req, res) => {
     });
   }
 });
-router.post("/save-chat-user", authMiddleware, async (req, res) => {
+router.post("/save-chat-user", zonalAdminMiddleware, async (req, res) => {
   try {
     const data = req.body;
     // console.log(data);
@@ -572,7 +598,7 @@ router.post("/save-chat-user", authMiddleware, async (req, res) => {
   }
 });
 
-router.post("/resolve-chat", authMiddleware, async (req, res) => {
+router.post("/resolve-chat", zonalAdminMiddleware, async (req, res) => {
   try {
     const data = req.body;
     // console.log(data);
@@ -609,7 +635,7 @@ router.post("/resolve-chat", authMiddleware, async (req, res) => {
   }
 });
 
-router.post("/unread-chat", async (req, res) => {
+router.post("/unread-chat", zonalAdminMiddleware, async (req, res) => {
   try {
     const { zoneadminId, userId } = req.body;
     const result = await chatModel.updateMany(
@@ -669,7 +695,7 @@ router.get("/getAllUserChat", authMiddleware, async (req, res) => {
     data: data,
   });
 });
-router.get("/getAllZoneChat", async (req, res) => {
+router.get("/getAllZoneChat", zonalAdminMiddleware, async (req, res) => {
   const id = req.query.id;
   // console.log(id);
 
@@ -695,7 +721,7 @@ router.get("/getZoneName", async (req, res) => {
   return res.status(201).json(zone);
 });
 
-router.get("/getUserDetails", async (req, res) => {
+router.get("/getUserDetails", zonalAdminMiddleware, async (req, res) => {
   try {
     const data = await Industry.findById(req.query.userId);
     return res.status(201).send({
