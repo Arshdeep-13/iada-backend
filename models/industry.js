@@ -60,7 +60,6 @@ const industrySchema = new Schema({
   gstin_number: {
     type: String,
     required: true,
-    unique: true,
   },
   is_registered: {
     type: Boolean,
