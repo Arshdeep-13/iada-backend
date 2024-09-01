@@ -26,7 +26,10 @@ const sharp = require("sharp");
 const { check, validationResult } = require("express-validator");
 const zonalAdminMiddleware = require("../middleware/zonalAdminMiddleware");
 let generateOtp = 0;
+let emailVerificationOtp = 0;
 const storage = multer.memoryStorage();
+const customMailSender = require("../utils/mailSender");
+
 const upload = multer({
   storage: storage,
   fileFilter: (req, file, cb) => {
@@ -770,6 +773,48 @@ router.get("/getdocByIndustry", authMiddleware, async (req, res) => {
       success: true,
       data: rawData,
     });
+  } catch (error) {
+    return res.status(501).send({
+      message: "wrong",
+      success: false,
+    });
+  }
+});
+
+router.post("/send-otp", async (req, res) => {
+  try {
+    const { email } = req.body;
+    emailVerificationOtp = Math.floor(100000 + Math.random() * 900000);
+    await customMailSender(
+      email,
+      "Email Verification OTP",
+      emailVerificationOtp
+    );
+    return res.status(201).send({
+      message: "OTP sent successfully",
+      success: true,
+    });
+  } catch (error) {
+    return res.status(501).send({
+      message: "wrong",
+      success: false,
+    });
+  }
+});
+router.post("/verify-otp", async (req, res) => {
+  try {
+    const { otp } = req.body;
+    if (parseInt(otp) == emailVerificationOtp) {
+      return res.status(201).send({
+        message: "OTP verified successfully",
+        success: true,
+      });
+    } else {
+      return res.status(401).send({
+        message: "Invalid OTP",
+        success: false,
+      });
+    }
   } catch (error) {
     return res.status(501).send({
       message: "wrong",
