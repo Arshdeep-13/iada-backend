@@ -5,7 +5,7 @@ dotenv.config();
 const mailSender = (email,data) => {
     const transporter = nodemailer.createTransport({
         service: "gmail",
-        host: "smtp.gmail.com",
+        host: "smtp.iadabaddi.com",
         port: 587,
         secure: false, // Use true for port 465, false for all other ports
         auth: {
@@ -17,7 +17,7 @@ const mailSender = (email,data) => {
     const mailOptions = {
         from: {
             name: "IADA-WebPortal",
-            address: "surekshwal@gmail.com",
+            address: "swca.support@iadabaddi.com",
         }, // sender address
         to: [email], // list of receivers
         subject: "New Alert Received", // Subject line

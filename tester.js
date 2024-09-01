@@ -4,8 +4,7 @@ dotenv.config();
 
 const mailSender = (email,name,industry) => {
     const transporter = nodemailer.createTransport({
-        service: "gmail",
-        host: "smtp.gmail.com",
+        host: "smtp.iadabaddi.com",
         port: 587,
         secure: false, // Use true for port 465, false for all other ports
         auth: {
@@ -17,7 +16,7 @@ const mailSender = (email,name,industry) => {
     const mailOptions = {
         from: {
             name: "Confirmation from IADA",
-            address: "surekshwal@gmail.com",
+            address: "swca.support@iadabaddi.com",
         }, // sender address
         to: [email], // list of receivers
         subject: "Registration request sent for approval", // Subject line
