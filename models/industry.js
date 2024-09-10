@@ -13,7 +13,6 @@ const industrySchema = new Schema({
   email: {
     type: String,
     required: true,
-    unique: true,
     validate: [validateEmail, "Invalid email address"],
   },
   password: {

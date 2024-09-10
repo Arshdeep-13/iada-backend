@@ -26,6 +26,8 @@ const chatModel = require("../models/chatModel");
 const counterFile = path.join(__dirname, "../utils/counter.txt");
 const axios = require("axios");
 const authMiddleware = require("../middleware/authMiddleware");
+const zonalAdminMiddleware = require("../middleware/zonalAdminMiddleware");
+const SITE_SECRET = process.env.SITE_SECRET;
 
 // FUNCTIONS
 
@@ -286,7 +288,7 @@ const writeCounter = async (counter) => {
 };
 
 // ROUTES
-const SITE_SECRET = process.env.SITE_SECRET;
+
 router.post("/login", async (req, res) => {
   try {
     const { admin_email, password, rememberMe, captchaValue } = req.body;
@@ -418,52 +420,7 @@ router.post("/register", async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 });
-router.post("/approve", async (req, res) => {
-  try {
-    const { id } = req.body;
-    if (!id) {
-      return res.status(400).json({ error: "ID is required" });
-    }
 
-    const updatedAdmin = await Admin.findByIdAndUpdate(
-      id,
-      { is_approved: true },
-      { new: true }
-    );
-
-    if (!updatedAdmin) {
-      return res.status(404).json({ error: "Zonal Admin not found" });
-    }
-
-    res
-      .status(200)
-      .json({ message: "Zonal Admin approved successfully", updatedAdmin });
-  } catch (error) {
-    console.error("Error approving zonal admin:", error);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-});
-router.post("/delete", async (req, res) => {
-  try {
-    const { id } = req.body;
-    if (!id) {
-      return res.status(400).json({ error: "ID is required" });
-    }
-
-    const deletedAdmin = await Admin.findByIdAndDelete(id);
-
-    if (!deletedAdmin) {
-      return res.status(404).json({ error: "Zonal Admin not found" });
-    }
-
-    res
-      .status(200)
-      .json({ message: "Zonal Admin deleted successfully", deletedAdmin });
-  } catch (error) {
-    console.error("Error deleting zonal admin:", error);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-});
 router.get("/adminid", authMiddleware, async (req, res) => {
   try {
     const data = await Admin.findOne({ admin_type: "master_admin" });
@@ -480,7 +437,7 @@ router.get("/adminid", authMiddleware, async (req, res) => {
     });
   }
 });
-router.post("/getone", async (req, res) => {
+router.post("/getone", zonalAdminMiddleware ,async (req, res) => {
   try {
     const { _id } = req.body;
     const ZAdmin = await Admin.findOne({ _id });
@@ -540,7 +497,7 @@ router.post("/save-chat-admin", authMiddleware, async (req, res) => {
     });
   }
 });
-router.post("/save-chat-user", async (req, res) => {
+router.post("/save-chat-user", zonalAdminMiddleware, async (req, res) => {
   try {
     const data = req.body;
     const response = await chatModel.findOne({ userId: data.userId });
@@ -563,7 +520,7 @@ router.post("/save-chat-user", async (req, res) => {
     });
   }
 });
-router.post("/save-updated-chat-madmin", async (req, res) => {
+router.post("/save-updated-chat-madmin", zonalAdminMiddleware, async (req, res) => {
   try {
     req.body = req.body.body.e;
     const { adminID } = req.body;
@@ -601,7 +558,7 @@ schedule.scheduleJob("0 0 * * *", async () => {
   }
 });
 
-router.get("/resolveChatmAdmin", async (req, res) => {
+router.get("/resolveChatmAdmin", zonalAdminMiddleware, async (req, res) => {
   try {
     const data = await chat.find({ isResolve: true, caseDays: { $gt: 14 } });
     return res.status(201).send({
@@ -617,7 +574,7 @@ router.get("/resolveChatmAdmin", async (req, res) => {
   }
 });
 
-router.get("/getAllIndustryChat", async (req, res) => {
+router.get("/getAllIndustryChat", zonalAdminMiddleware, async (req, res) => {
   try {
     const data = await adminchatModel.find({});
     return res.status(201).send({
@@ -632,7 +589,7 @@ router.get("/getAllIndustryChat", async (req, res) => {
     });
   }
 });
-router.get("/getalladmin", async (req, res) => {
+router.get("/getalladmin", zonalAdminMiddleware, async (req, res) => {
   try {
     const admins = await Admin.find({ admin_type: "zonal_admin" });
     return res.status(200).json(admins);
@@ -643,7 +600,7 @@ router.get("/getalladmin", async (req, res) => {
     });
   }
 });
-router.get("/getIndustryChat-admin", async (req, res) => {
+router.get("/getIndustryChat-admin", zonalAdminMiddleware, async (req, res) => {
   try {
     // console.log(req.query.id)
     const data = await adminchatModel.findOne({ zonaladminID: req.query.id });
@@ -661,7 +618,7 @@ router.get("/getIndustryChat-admin", async (req, res) => {
   }
 });
 
-router.post("/resolve-chat", async (req, res) => {
+router.post("/resolve-chat", zonalAdminMiddleware, async (req, res) => {
   try {
     const data = req.body;
     // console.log(data);
@@ -700,7 +657,7 @@ router.post("/resolve-chat", async (req, res) => {
     });
   }
 });
-router.post("/resolve-chat-all", async (req, res) => {
+router.post("/resolve-chat-all", zonalAdminMiddleware, async (req, res) => {
   try {
     const data = req.body;
     const updatedDoc = await adminchatModel.findOne({
@@ -758,7 +715,7 @@ router.post("/resolve-chat-all", async (req, res) => {
     });
   }
 });
-router.post("/user-statisfied", async (req, res) => {
+router.post("/user-statisfied", zonalAdminMiddleware, async (req, res) => {
   try {
     const data = req.body;
     const userId = await adminchatModel.findOneAndUpdate(
@@ -794,7 +751,7 @@ router.get("/getAdminData", async (req, res) => {
     });
   }
 });
-router.put("/updateAdminData", async (req, res) => {
+router.put("/updateAdminData", zonalAdminMiddleware, async (req, res) => {
   try {
     const data = await Admin.findOneAndUpdate(
       { admin_id: req.body.id },
@@ -818,6 +775,7 @@ router.put("/updateAdminData", async (req, res) => {
 });
 router.post(
   "/getIndustryWaterBill",
+  zonalAdminMiddleware,
   upload.single("avatar"),
   async (req, res) => {
     let file;
@@ -884,7 +842,7 @@ router.post(
     }
   }
 );
-router.post("/updateWaterBill", async (req, res) => {
+router.post("/updateWaterBill", zonalAdminMiddleware, async (req, res) => {
   try {
     req.body.isDue = false; // if payment is successful
     return res.status(201).send({
@@ -964,7 +922,7 @@ router.post(
   }
 );
 
-router.get("/getDocByZone", async (req, res) => {
+router.get("/getDocByZone", zonalAdminMiddleware, async (req, res) => {
   const { zoneId } = req.query;
   try {
     const documents = await adminDoc.find({ zonaladmin: zoneId });
@@ -991,7 +949,7 @@ router.get("/mAdmin/getdocument", authMiddleware, async (req, res) => {
   }
 });
 
-router.post("/mAdmin/deleteDocuments", async (req, res) => {
+router.post("/mAdmin/deleteDocuments", zonalAdminMiddleware, async (req, res) => {
   const { ids } = req.body;
   try {
     if (!Array.isArray(ids) || ids.length === 0) {
@@ -1016,7 +974,7 @@ router.post("/mAdmin/deleteDocuments", async (req, res) => {
   }
 });
 
-router.post("/resolve-chat", async (req, res) => {
+router.post("/resolve-chat", zonalAdminMiddleware, async (req, res) => {
   try {
     const data = req.body;
     const updatedDoc = await chatModel.findOne({ userId: data.userId });
@@ -1073,7 +1031,7 @@ router.get("/get-industry-images", async (req, res) => {
   }
 });
 
-router.post("/deletetheimage", async (req, res) => {
+router.post("/deletetheimage", zonalAdminMiddleware, async (req, res) => {
   try {
     const { industry_id, imgId } = req.body;
 
@@ -1118,7 +1076,7 @@ router.post("/deletetheimage", async (req, res) => {
   }
 });
 
-router.post("/update-image-status", async (req, res) => {
+router.post("/update-image-status", zonalAdminMiddleware, async (req, res) => {
   try {
     const { industry_id, imgId } = req.body;
 

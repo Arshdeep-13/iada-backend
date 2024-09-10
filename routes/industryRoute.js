@@ -29,6 +29,7 @@ let generateOtp = 0;
 let emailVerificationOtp = 0;
 const storage = multer.memoryStorage();
 const customMailSender = require("../utils/mailSender");
+const SITE_SECRET = process.env.SITE_SECRET;
 
 const upload = multer({
   storage: storage,
@@ -87,7 +88,7 @@ const uploadDocument = async (req, res) => {
   }
 };
 
-router.post("/upload", upload.single("file"), uploadDocument); //industry upload document during registration
+router.post("/upload", upload.single("file"), uploadDocument); //industry upload document during registration //should not be secured
 router.post("/get-approved-images", async (req, res) => {
   //industry image gallary fetching
   try {
@@ -329,7 +330,7 @@ router.post(
     }
   }
 );
-const SITE_SECRET = process.env.SITE_SECRET;
+
 router.post("/login", async (req, res) => {
   try {
     const { email, password, rememberMe, captchaValue } = req.body;
@@ -520,7 +521,7 @@ router.delete("/delete", authMiddleware, async (req, res) => {
       .json({ success: false, message: "Internal server error" });
   }
 });
-router.post("/get-water-bill", async (req, res) => {
+router.post("/get-water-bill", authMiddleware, async (req, res) => {
   try {
     const data = new waterBill(req.body);
     await data.save();
@@ -669,7 +670,7 @@ router.post("/unread-chat", zonalAdminMiddleware, async (req, res) => {
     });
   }
 });
-router.post("/user-statisfied", async (req, res) => {
+router.post("/user-statisfied", authMiddleware, async (req, res) => {
   try {
     const data = req.body;
     const userId = await chatModel.findOneAndUpdate(
@@ -708,7 +709,7 @@ router.get("/getAllZoneChat", zonalAdminMiddleware, async (req, res) => {
     data: data,
   });
 });
-router.get("/getMasterAdminDetails", async (req, res) => {
+router.get("/getMasterAdminDetails", authMiddleware, async (req, res) => {
   const arr = await adminModel.find({});
   let data = [];
   for (let obj of arr) {
