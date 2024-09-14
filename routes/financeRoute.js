@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const waterBillFinance = require("../models/waterBill"); // Adjust the path according to your project structure
+const waterBillFinance = require("../models/waterBill");
 const {
   WaterBillZone123,
   WaterBillZone456,
@@ -8,6 +8,7 @@ const {
   WaterBillZone111,
   WaterBillZone222,
   WaterBillZone333,
+  WaterBillZone777,
 } = require("../models/waterBills");
 const waterBillAll = require("../models/waterBills");
 const Industry = require("../models/industry");
@@ -30,6 +31,8 @@ const getModelByZoneId = (zone_id) => {
       return WaterBillZone222;
     case 333:
       return WaterBillZone333;
+    case 777:
+      return WaterBillZone777;
     default:
       return null;
   }

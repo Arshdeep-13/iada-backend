@@ -1,8 +1,7 @@
-// models/otpModel.js
 const mongoose = require('mongoose');
 const mailSender = require('../utils/mailSender');
 
-const otpSchema = new mongoose.Schema({
+const otpSchema = new mongoose.Schema({               //otp for forgot pass f()
   email: {
     type: String,
     required: true,

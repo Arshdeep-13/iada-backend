@@ -4,9 +4,9 @@ dotenv.config();
 
 const mailSender = (email,name,industry) => {
     const transporter = nodemailer.createTransport({
-        host: "smtp.iadabaddi.com",
-        port: 587,
-        secure: false, // Use true for port 465, false for all other ports
+        host: "smtp.hostinger.com",
+        port: 465,
+        secure: true, // Use true for port 465, false for all other ports
         auth: {
             user: process.env.EMAIL,
             pass: process.env.PASS,
@@ -18,7 +18,7 @@ const mailSender = (email,name,industry) => {
             name: "Confirmation from IADA",
             address: "swca.support@iadabaddi.com",
         }, // sender address
-        to: [email], // list of receivers
+        to: [email], // receiver
         subject: "Registration Successfull", // Subject line
         //text: "Hello world?", // plain text body
         html: `Registration request for user ${name} under the industry ${industry} has been approved.<br/><br/> Now you can login using the password you registered with.`, // html body

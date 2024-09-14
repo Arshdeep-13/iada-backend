@@ -118,13 +118,12 @@ router.post("/verifyotp", async (req, res) => {
 
 async function sendConfirmationEmail(email) {
   try {
-    const mailResponse = await mailSender(
+     mailResponse = await mailSender(
       email,
       "Confirmation Email",
       `<h1>Your password has been reset for account with email id : ${email}</h1>
        <p>Try contacting the admin if not done by you.</p>`
     );
-    // console.log("Email sent successfully: ", mailResponse);
   } catch (error) {
     console.log("Error occurred while sending email: ", error);
     throw error;

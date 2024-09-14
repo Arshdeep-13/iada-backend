@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
-
+//Water Bills per zone
 const waterBillSchema = new Schema({
   no: {
     type: Number,
@@ -82,6 +82,7 @@ const WaterBillZone789 = mongoose.model("WaterBillZone789", waterBillSchema);
 const WaterBillZone111 = mongoose.model("WaterBillZone111", waterBillSchema);
 const WaterBillZone222 = mongoose.model("WaterBillZone222", waterBillSchema);
 const WaterBillZone333 = mongoose.model("WaterBillZone333", waterBillSchema);
+const WaterBillZone777 = mongoose.model("WaterBillZone777", waterBillSchema);
 
 const getModelByZoneId = (zoneId) => {
   switch (zoneId) {
@@ -97,6 +98,8 @@ const getModelByZoneId = (zoneId) => {
       return WaterBillZone222;
     case "333":
       return WaterBillZone333;
+    case "777":
+      return WaterBillZone777;
     default:
       throw new Error("Invalid zoneId");
   }
@@ -109,5 +112,6 @@ module.exports = {
   WaterBillZone111,
   WaterBillZone222,
   WaterBillZone333,
+  WaterBillZone777,
   getModelByZoneId,
 };
