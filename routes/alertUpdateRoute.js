@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const filePath = path.join(__dirname, "../utils/newsUpdates.json");
 const zAdminAlerts = require("../models/zAdminAlerts");
+const AlertAdmin = require("../models/alertsAdmin");
 const { addAlert } = require("../services/alertService");
 const authMiddleWare = require("../middleware/authMiddleware");
 const MAX_LENGTH = 3;
@@ -96,6 +97,36 @@ router.get("/:industry_id/alerts-summary", async (req, res) => {
   }
 });
 
+router.get("/admin-alerts-summary/:zone_id", async (req, res) => {
+  const { zone_id } = req.params;
+  console.log(zone_id);
+
+  try {
+    const alertAdmins = await AlertAdmin.findOne({ zone_id });
+
+    if (!alertAdmins) {
+      return res.status(200).json({ message: "no alerts" });
+    }
+
+    let readAlerts = 0;
+    let unReadAlerts = 0;
+
+    alertAdmins.alerts.forEach((alert) => {
+      if (alert.isRead) readAlerts++;
+      else unReadAlerts++;
+    });
+
+    res.status(200).json({
+      zone_id,
+      numReadAlerts: readAlerts,
+      numUnreadAlerts: unReadAlerts,
+    });
+  } catch (error) {
+    console.error("Error fetching alerts summary", error);
+    res.status(500).json({ message: "Error fetching alerts summary", error });
+  }
+});
+
 router.post("/:industry_id", authMiddleWare, async (req, res) => {
   //add alert(ZA) endpoint
   const industry_id = req.params.industry_id;
@@ -112,6 +143,35 @@ router.post("/:industry_id", authMiddleWare, async (req, res) => {
     res.status(201).json({ message: "New Alert added successfully", newAlert });
   } catch (error) {
     res.status(500).json({ message: "Error addinig alert", error });
+  }
+});
+
+router.put("/getAdminAlerts/:zone_id", async(req, res) => {
+  const { zone_id } = req.params;
+
+  try {
+    const adminAlerts = await AlertAdmin.findOne({ zone_id });
+
+    if (!adminAlerts) {
+      return res.status(404).json({ message: "No Alerts for Current User" });
+    }
+
+    const originalAdminAlerts = adminAlerts.toObject();
+    adminAlerts.alerts.forEach((alert) => {
+      if (!alert.isRead) {
+        alert.isRead = true;
+      }
+    });
+
+    await adminAlerts.save();
+
+    res.status(200).json({
+      message: "Alerts updated successfully",
+      adminAlerts: originalAdminAlerts,
+    });
+  } catch (error) {
+    console.error("Error updating alerts:", error);
+    res.status(500).json({ message: "Error updating alerts", error });
   }
 });
 

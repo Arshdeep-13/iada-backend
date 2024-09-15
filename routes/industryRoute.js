@@ -19,7 +19,7 @@ const industryRegDoc = require("../models/RegDocumentModal");
 const multer = require("multer");
 const fs = require("fs");
 const { userInfo } = require("os");
-const { addAlert } = require("../services/alertService");
+const { addAlert, addAlertForAdmin } = require("../services/alertService");
 const { newIndustryAlert } = require("../utils/constants");
 const authMiddleware = require("../middleware/authMiddleware");
 const sharp = require("sharp");
@@ -445,7 +445,17 @@ router.put("/updateIndustryData", authMiddleware, async (req, res) => {
       },
       { new: true }
     );
-    return res.status(200).json(updatedIndustry);
+    res.status(200).json(updatedIndustry);
+    const alertContent = `
+      ${industry_name} updated their details. 
+      <a href="/industries/${updatedIndustry._id}">View details</a>
+    `;
+    addAlertForAdmin({
+      zone_id: updatedIndustry.zone_id,
+      title: "Updated settings",
+      content: alertContent,
+      date: new Date().toISOString(),
+    })
   } catch (error) {
     console.error("Error updating industry data:", error);
     return res.status(500).json({ message: "Internal server error" });

@@ -19,7 +19,7 @@ const otpSchema = new mongoose.Schema({               //otp for forgot pass f()
   createdAt: {
     type: Date,
     default: Date.now,
-    expires: 60 * 2, // The document will be automatically deleted after 2 minutes of its creation time
+    expires: 60 * 3, // The document will be automatically deleted after 3 minutes of its creation
   },
 });
 

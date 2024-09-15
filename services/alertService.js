@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const zAdminAlerts = require("../models/zAdminAlerts");
 const Industry = require("../models/industry");
 const ZAdmin = require("../models/admins");
+const AlertAdmin = require("../models/alertsAdmin");
 const mailSender = require("../utils/AlertMailer");
 
 async function addAlert(industry_id, { title, content, date, zone_id, alert_type }) {
@@ -40,5 +41,33 @@ async function addAlert(industry_id, { title, content, date, zone_id, alert_type
   
     return newAlert;
   }
+
+  async function addAlertForAdmin({zone_id, title, content, date}) {
+    if (!zone_id) {
+      throw new Error("Zone ID is required");
+    }
+
+    let adminAlerts = await AlertAdmin.findOne({ zone_id });
+    if (!adminAlerts){
+      adminAlerts = new AlertAdmin({zone_id, alerts: []});
+    }
+
+    const newAlert = {
+      alert_id: new mongoose.Types.ObjectId(),
+      title,
+      content,
+      date: new Date(date).toISOString().split("T")[0],
+      isRead: false,
+    };
+
+    adminAlerts.alerts.push(newAlert);
+
+    if(adminAlerts.alerts.length > 10) {
+      adminAlerts.alerts.sort((a, b) => new Date(a.date) - new Date(b.date));
+      adminAlerts.alerts.shift();
+    }
+    await adminAlerts.save();
+
+  }
   
-  module.exports = { addAlert };
+  module.exports = { addAlert,addAlertForAdmin };

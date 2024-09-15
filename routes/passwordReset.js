@@ -25,7 +25,7 @@ router.post("/", async (req, res) => {
     if (!admin && !industry) {
       return res
         .status(404)
-        .json({ message: "No account associated to given mail" });
+        .json({ message: "No account associated with the given email" });
     }
   } catch (e) {
     res.status(500).json({ message: e });
@@ -61,7 +61,6 @@ router.post("/verifyotp", async (req, res) => {
   const { email, userOtp, newPassword } = req.body;
   try {
     const otpdoc = await OTP.findOne({ email });
-    // console.log(otpdoc.otp)
     if (!otpdoc) {
       res.status(403).json({ message: "No otp found" });
       return;
