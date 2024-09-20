@@ -795,6 +795,7 @@ router.get("/getdocByIndustry", authMiddleware, async (req, res) => {
 router.post("/send-otp", async (req, res) => {
   try {
     const { email } = req.body;
+    console.log(email)
     emailVerificationOtp = Math.floor(100000 + Math.random() * 900000);
     await customMailSender(
       email,

@@ -33,9 +33,9 @@ router.post("/", async (req, res) => {
 
   try {
     const otp = generateOTP();
-
     let existingOTP = await OTP.findOne({ email });
 
+    console.log(otp);
     if (existingOTP) {
       existingOTP = await OTP.findOneAndUpdate(
         { email },
@@ -59,15 +59,22 @@ router.post("/", async (req, res) => {
 
 router.post("/verifyotp", async (req, res) => {
   const { email, userOtp, newPassword } = req.body;
+  const passwordRegex =
+    /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
   try {
     const otpdoc = await OTP.findOne({ email });
     if (!otpdoc) {
-      res.status(403).json({ message: "No otp found" });
-      return;
+      return res.status(403).json({ message: "No OTP found" });
     }
-    if (otpdoc.otp == userOtp) {
+    if (otpdoc.otp === userOtp) {
       if (!email || !newPassword) {
         return res.status(400).json({ message: "All fields are required." });
+      }
+      if (!passwordRegex.test(newPassword)) {
+        return res.status(400).json({
+          message:
+            "Password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character.",
+        });
       }
 
       try {
@@ -79,12 +86,10 @@ router.post("/verifyotp", async (req, res) => {
           admin.password = hashedPassword;
           await admin.save();
           await sendConfirmationEmail(email);
-          return res
-            .status(200)
-            .json({
-              message:
-                "Otp verified and Password updated successfully for Admin.",
-            });
+          return res.status(200).json({
+            message:
+              "OTP verified and Password updated successfully for Admin.",
+          });
         }
 
         let industry = await Industry.findOne({ email });
@@ -94,30 +99,30 @@ router.post("/verifyotp", async (req, res) => {
           industry.password = hashedPassword;
           await industry.save();
           await sendConfirmationEmail(email);
-          return res
-            .status(200)
-            .json({
-              message:
-                "Otp verified and Password updated successfully for Industry.",
-            });
+          return res.status(200).json({
+            message:
+              "OTP verified and Password updated successfully for Industry.",
+          });
         }
 
-        res.status(404).json({ message: "No user found with this Email." });
+        return res
+          .status(404)
+          .json({ message: "No user found with this Email." });
       } catch (error) {
         console.error("Error resetting password:", error);
-        res.status(500).json({ message: "Internal Server Error." });
+        return res.status(500).json({ message: "Internal Server Error." });
       }
     } else {
       return res.status(400).json({ message: "Incorrect OTP." });
     }
   } catch (e) {
-    res.status(500).json({ message: e });
+    return res.status(500).json({ message: e });
   }
 });
 
 async function sendConfirmationEmail(email) {
   try {
-     mailResponse = await mailSender(
+    mailResponse = await mailSender(
       email,
       "Confirmation Email",
       `<h1>Your password has been reset for account with email id : ${email}</h1>
