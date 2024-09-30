@@ -6,6 +6,8 @@ const Industry = require("../models/industry");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
+const OTP = require("../models/otpModel");
+
 const waterBill = require("../models/waterBills");
 const Document = require("../models/documents");
 const zoneModel = require("../models/zoneData");
@@ -442,20 +444,23 @@ router.put("/updateIndustryData", authMiddleware, async (req, res) => {
           lessee,
           item_manufactured,
         },
-      },
-      { new: true }
+      }
     );
-    res.status(200).json(updatedIndustry);
-    const alertContent = `
+    if (!updatedIndustry) {
+      return res.status(404).json({ message: "Email not found" });
+    } else {
+      res.status(200).json({ message: "Industry data updated successfully" });
+      const alertContent = `
       ${industry_name} updated their details. 
-      <a href="/industries/${updatedIndustry._id}">View details</a>
+      <a href="/industry/${updatedIndustry._id}">View details</a>
     `;
-    addAlertForAdmin({
-      zone_id: updatedIndustry.zone_id,
-      title: "Updated settings",
-      content: alertContent,
-      date: new Date().toISOString(),
-    })
+      addAlertForAdmin({
+        zone_id: updatedIndustry.zone_id,
+        title: "Updated settings",
+        content: alertContent,
+        date: new Date().toISOString(),
+      });
+    }
   } catch (error) {
     console.error("Error updating industry data:", error);
     return res.status(500).json({ message: "Internal server error" });
@@ -795,8 +800,26 @@ router.get("/getdocByIndustry", authMiddleware, async (req, res) => {
 router.post("/send-otp", async (req, res) => {
   try {
     const { email } = req.body;
-    console.log(email)
+    if (!email) {
+      return res.status(500).json({ message: "Please provide an email" });
+    }
+
+    
     emailVerificationOtp = Math.floor(100000 + Math.random() * 900000);
+    let existingOTP = await OTP.findOne({ email });
+    if (existingOTP) {
+      existingOTP = await OTP.findOneAndUpdate(
+        { email },
+        { email, otp: emailVerificationOtp },
+        { new: true }
+      );
+    } else {
+      existingOTP = await OTP.create({
+        email,
+        otp: emailVerificationOtp,
+      });
+      
+    }
     await customMailSender(
       email,
       "Email Verification OTP",
@@ -807,6 +830,7 @@ router.post("/send-otp", async (req, res) => {
       success: true,
     });
   } catch (error) {
+    console.log("Server Error:", error);
     return res.status(501).send({
       message: "wrong",
       success: false,
@@ -815,8 +839,15 @@ router.post("/send-otp", async (req, res) => {
 });
 router.post("/verify-otp", async (req, res) => {
   try {
-    const { otp } = req.body;
-    if (parseInt(otp) == emailVerificationOtp) {
+    const { otp,email } = req.body;
+    const OTPData = await OTP.findOne({ email });
+    if (!OTPData) {
+      return res.status(403).send({
+        message: "OTP not found",
+        success: false,
+      });
+    }
+    if (otp === OTPData.otp) {
       return res.status(201).send({
         message: "OTP verified successfully",
         success: true,
@@ -828,9 +859,11 @@ router.post("/verify-otp", async (req, res) => {
       });
     }
   } catch (error) {
+    console.error("Server Error:", error);
     return res.status(501).send({
       message: "wrong",
       success: false,
+      error: error,
     });
   }
 });

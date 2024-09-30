@@ -34,7 +34,6 @@ router.post("/", async (req, res) => {
   try {
     const otp = generateOTP();
     let existingOTP = await OTP.findOne({ email });
-
     console.log(otp);
     if (existingOTP) {
       existingOTP = await OTP.findOneAndUpdate(
@@ -49,6 +48,12 @@ router.post("/", async (req, res) => {
       });
       existingOTP = await newOTP.save();
     }
+
+    await mailSender(
+      email,
+      "Password Reset OTP",
+      `Your OTP for password reset is: ${otp}`
+    );
 
     res.status(200).json({ message: "OTP generated and sent successfully" });
   } catch (error) {

@@ -43,9 +43,9 @@ const mailSender = async (email, title, body) => {
           </div>
           <div class="body">
             <p>Dear User,</p>
-            <p>Thank you for registering on our website! To complete your registration, please use the following One-Time Password (OTP):</p>
-            <p class="otp">Your OTP: <strong>${body}</strong></p>
-            <p>Please enter this OTP on the registration page to verify your email address.</p>
+            <p>Thank you for using our website!</p>
+            <p class="otp"><strong>${body}</strong></p>
+            <p>Please enter this OTP to verify your email address.</p>
           </div>
           <div class="footer">
             <p>Best regards,</p>

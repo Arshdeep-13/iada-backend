@@ -99,7 +99,6 @@ router.get("/:industry_id/alerts-summary", async (req, res) => {
 
 router.get("/admin-alerts-summary/:zone_id", async (req, res) => {
   const { zone_id } = req.params;
-  console.log(zone_id);
 
   try {
     const alertAdmins = await AlertAdmin.findOne({ zone_id });
