@@ -328,6 +328,10 @@ router.post("/login", async (req, res) => {
             zone_id: requestedAdmin.zone_id,
           });
           if (!zoneName) {
+            const newToken = await Admin.findByIdAndUpdate(requestedAdmin.id, {
+              currentToken: token,
+            });
+            await newToken.save();
             return res.status(200).json({
               status: 200,
               admin: requestedAdmin,
@@ -337,6 +341,11 @@ router.post("/login", async (req, res) => {
             });
           } else {
             requestedAdmin.zone_name = zoneName.zone_name;
+            console.log("Admin" + requestedAdmin)
+            const newToken = await Admin.findByIdAndUpdate(requestedAdmin.id, {
+              currentToken: token,
+            });
+            await newToken.save();
             return res.status(200).json({
               status: 200,
               admin: requestedAdmin,
@@ -437,7 +446,7 @@ router.get("/adminid", authMiddleware, async (req, res) => {
     });
   }
 });
-router.post("/getone", zonalAdminMiddleware ,async (req, res) => {
+router.post("/getone", zonalAdminMiddleware, async (req, res) => {
   try {
     const { _id } = req.body;
     const ZAdmin = await Admin.findOne({ _id });
@@ -520,23 +529,27 @@ router.post("/save-chat-user", zonalAdminMiddleware, async (req, res) => {
     });
   }
 });
-router.post("/save-updated-chat-madmin", zonalAdminMiddleware, async (req, res) => {
-  try {
-    req.body = req.body.body.e;
-    const { adminID } = req.body;
-    await adminchatModel.findOneAndUpdate({ adminID: adminID }, req.body);
+router.post(
+  "/save-updated-chat-madmin",
+  zonalAdminMiddleware,
+  async (req, res) => {
+    try {
+      req.body = req.body.body.e;
+      const { adminID } = req.body;
+      await adminchatModel.findOneAndUpdate({ adminID: adminID }, req.body);
 
-    return res.status(201).send({
-      message: "chat saved successfully",
-      success: true,
-    });
-  } catch (err) {
-    return res.status(401).send({
-      message: err.message,
-      success: false,
-    });
+      return res.status(201).send({
+        message: "chat saved successfully",
+        success: true,
+      });
+    } catch (err) {
+      return res.status(401).send({
+        message: err.message,
+        success: false,
+      });
+    }
   }
-});
+);
 
 // creating the node-schedule for the auto updating the date for caseDays
 schedule.scheduleJob("0 0 * * *", async () => {
@@ -773,6 +786,8 @@ router.put("/updateAdminData", zonalAdminMiddleware, async (req, res) => {
     });
   }
 });
+
+
 router.post(
   "/getIndustryWaterBill",
   zonalAdminMiddleware,
@@ -949,36 +964,38 @@ router.get("/mAdmin/getdocument", authMiddleware, async (req, res) => {
   }
 });
 
-router.post("/mAdmin/deleteDocuments", zonalAdminMiddleware, async (req, res) => {
-  const { ids } = req.body;
-  try {
-    if (!Array.isArray(ids) || ids.length === 0) {
-      return res.status(400).json({ error: "Invalid IDs provided" });
+router.post(
+  "/mAdmin/deleteDocuments",
+  zonalAdminMiddleware,
+  async (req, res) => {
+    const { ids } = req.body;
+    try {
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: "Invalid IDs provided" });
+      }
+
+      const result = await adminDoc.deleteMany({ _id: { $in: ids } });
+
+      if (result.deletedCount === 0) {
+        return res
+          .status(404)
+          .json({ error: "No documents found with provided IDs" });
+      }
+
+      res.status(200).json({
+        message: `${result.deletedCount} document(s) deleted successfully`,
+      });
+    } catch (error) {
+      console.error("Error deleting documents:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
-
-    const result = await adminDoc.deleteMany({ _id: { $in: ids } });
-
-    if (result.deletedCount === 0) {
-      return res
-        .status(404)
-        .json({ error: "No documents found with provided IDs" });
-    }
-
-    res.status(200).json({
-      message: `${result.deletedCount} document(s) deleted successfully`,
-    });
-    // console.log("Hello world");
-  } catch (error) {
-    console.error("Error deleting documents:", error);
-    res.status(500).json({ error: "Internal server error" });
   }
-});
+);
 
 router.post("/resolve-chat", zonalAdminMiddleware, async (req, res) => {
   try {
     const data = req.body;
     const updatedDoc = await chatModel.findOne({ userId: data.userId });
-    // console.log(data.whoResolve, data.userId);
     let update;
     if (updatedDoc && updatedDoc.isResolve) {
       update = {

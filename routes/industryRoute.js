@@ -9,18 +9,16 @@ const mongoose = require("mongoose");
 const OTP = require("../models/otpModel");
 
 const waterBill = require("../models/waterBills");
+const IndustryBillAssociation = require("../models/industryBillAssociation");
 const Document = require("../models/documents");
 const zoneModel = require("../models/zoneData");
 const chatModel = require("../models/chatModel");
 const adminModel = require("../models/admins");
 const IndustryImage = require("../models/industryImage");
-const twilo = require("twilio");
-const { phoneOtp } = require("../controllers/phoneOtpController");
 const WaterBillFinance = require("../models/waterBill");
 const industryRegDoc = require("../models/RegDocumentModal");
 const multer = require("multer");
 const fs = require("fs");
-const { userInfo } = require("os");
 const { addAlert, addAlertForAdmin } = require("../services/alertService");
 const { newIndustryAlert } = require("../utils/constants");
 const authMiddleware = require("../middleware/authMiddleware");
@@ -179,8 +177,7 @@ router.post(
   }
 );
 
-router.get("/", authMiddleware, async (req, res) => {
-  //req needed?
+router.get("/", authMiddleware, async (res) => {
   try {
     const industries = await Industry.find();
 
@@ -236,6 +233,42 @@ router.post("/zoned", authMiddleware, async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+router.post("/zoned-with-meter", authMiddleware, async (req, res) => {
+  try {
+    const { zone_id } = req.body;
+
+    const industries = await Industry.find({ zone_id: zone_id }).select(
+      "-password"
+    );
+
+    const plotNumbers = industries.map((industry) => industry.plot_number);
+
+    const billAssociations = await IndustryBillAssociation.find({
+      plot_number: { $in: plotNumbers }, //This associates the bills with the industries based on plot numbers
+    });
+
+    const billMap = {};
+    billAssociations.forEach((association) => {
+      billMap[association.plot_number] = {
+        meterNo: association.meterNo,
+        consumerNo: association.consumerNo,
+      };
+    });
+
+    const responseData = industries.map((industry) => ({
+      ...industry.toObject(),
+      meterNo: billMap[industry.plot_number]?.meterNo || "N/A",
+      consumerNo: billMap[industry.plot_number]?.consumerNo || "N/A",
+    }));
+
+    res.status(200).json(responseData);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
 router.post("/fetch-pdf-zoneId", authMiddleware, async (req, res) => {
   try {
     const { zone_id } = req.body;
@@ -362,15 +395,16 @@ router.post("/login", async (req, res) => {
         });
       }
 
-      // generateOtp = Math.floor(100000 + Math.random() * 900000);
-
       try {
-        // await phoneOtp(generateOtp, `+91${industry.phone_number}`);
         const token = jwt.sign(
           { industryId: industry._id },
           process.env.SECRET_KEY,
           { expiresIn: rememberMe ? "30d" : "60m" }
         );
+        const newToken = await Industry.findByIdAndUpdate(industry.id, {
+          currentToken: token,
+        });
+        await newToken.save();
         res.status(200).send({
           status: 200,
           industry: industry,
@@ -393,11 +427,25 @@ router.post("/login", async (req, res) => {
 
 router.get("/getIndustryData", authMiddleware, async (req, res) => {
   try {
-    const { industry_email } = req.query;
-    const industry = await Industry.findOne({ email: industry_email });
+    const authHeader = req.headers.authorization;
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+    const industry_id = decoded.industryId;
 
+    const industry = await Industry.findOne({ _id: industry_id }).select(
+      "-password -currentToken -__v -is_registered -is_approved -_id"
+    );
+    const plot_number = industry.plot_number;
+    const billAssociation = await IndustryBillAssociation.find({
+      plot_number: plot_number, //This associates the bills with the industries based on plot numbers
+    });
+    const updatedIndustry = {
+      ...industry.toObject(),
+      meterNo: billAssociation[0].meterNo,
+      consumerNo: billAssociation[0].consumerNo,
+    };
     if (industry) {
-      return res.status(200).json(industry);
+      return res.status(200).json(updatedIndustry);
     } else {
       return res.status(404).json({ message: "Industry not found" });
     }
@@ -429,25 +477,51 @@ router.put("/updateIndustryData", authMiddleware, async (req, res) => {
       industry_name,
       phone_number,
       industry_area,
-      plot_number,
+      no_of_employees,
+      no_of_employees_HIM,
       lessee,
       item_manufactured,
+      gstin_number,
+      consumerNo,
+      meterNo,
     } = req.body;
+    const authHeader = req.headers.authorization;
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+    const industry_id = decoded.industryId;
+
+    const industry = await Industry.findOne({ _id: industry_id }).select(
+      "-password -currentToken -__v -is_registered -is_approved -_id"
+    );
+    const plot_number = industry.plot_number;
+
+    await IndustryBillAssociation.findOneAndUpdate(
+      { plot_number: plot_number },
+      {
+        $set: {
+          consumerNo,
+          meterNo,
+        },
+      }
+    );
     const updatedIndustry = await Industry.findOneAndUpdate(
-      { email: industry_email },
+      { _id: industry_id },
       {
         $set: {
           industry_name,
           phone_number,
           industry_area,
-          plot_number,
           lessee,
           item_manufactured,
+          gstin_number,
+          no_of_employees,
+          no_of_employees_HIM,
         },
       }
-    );
+    ).select("-password -currentToken -__v -is_registered -is_approved -_id");
+    // console.log(updatedIndustry);
     if (!updatedIndustry) {
-      return res.status(404).json({ message: "Email not found" });
+      return res.status(404).json({ message: "Industry not found" });
     } else {
       res.status(200).json({ message: "Industry data updated successfully" });
       const alertContent = `
@@ -804,21 +878,34 @@ router.post("/send-otp", async (req, res) => {
       return res.status(500).json({ message: "Please provide an email" });
     }
 
-    
     emailVerificationOtp = Math.floor(100000 + Math.random() * 900000);
+
     let existingOTP = await OTP.findOne({ email });
     if (existingOTP) {
-      existingOTP = await OTP.findOneAndUpdate(
-        { email },
-        { email, otp: emailVerificationOtp },
-        { new: true }
-      );
+      const currentTime = new Date();
+      const timeDiff = (currentTime - existingOTP.createdAt) / 1000;
+
+      console.log(timeDiff);
+      if (timeDiff < 30) {
+        return res.status(203).send({
+          message: `Please wait for ${
+            30 - Math.floor(timeDiff)
+          } seconds to send another OTP`,
+          success: true,
+        });
+      } else {
+        existingOTP = await OTP.findOneAndUpdate(
+          { email },
+          { otp: emailVerificationOtp, createdAt: new Date() },
+          { new: true }
+        );
+      }
     } else {
       existingOTP = await OTP.create({
         email,
         otp: emailVerificationOtp,
+        createdAt: new Date(),
       });
-      
     }
     await customMailSender(
       email,
@@ -839,7 +926,7 @@ router.post("/send-otp", async (req, res) => {
 });
 router.post("/verify-otp", async (req, res) => {
   try {
-    const { otp,email } = req.body;
+    const { otp, email } = req.body;
     const OTPData = await OTP.findOne({ email });
     if (!OTPData) {
       return res.status(403).send({

@@ -44,7 +44,7 @@ const industrySchema = new Schema({
     required: true,
   },
   no_of_employees_HIM: {
-    //no of himachali emps
+    //no of himachali employees
     type: String,
     required: true,
   },
@@ -70,18 +70,9 @@ const industrySchema = new Schema({
   },
 
   userAuthFile: Buffer,
+  currentToken:{
+    type:String
+  }
 });
-
-// industrySchema.methods.matchPassword = async function (enteredPassword) {
-//   return await bcrypt.compare(enteredPassword, this.password);
-// };
-
-// industrySchema.pre("save", async function (next) {
-//   if (!this.isModified("password")) {
-//     next();
-//   }
-//   const salt = await bcrypt.genSalt(10);
-//   this.password = await bcrypt.hash(this.password, salt);
-// });
 
 module.exports = mongoose.model("Industries", industrySchema);

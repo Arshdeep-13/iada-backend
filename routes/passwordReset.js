@@ -32,28 +32,49 @@ router.post("/", async (req, res) => {
   }
 
   try {
+    const existingOTP = await OTP.findOne({ email });
     const otp = generateOTP();
-    let existingOTP = await OTP.findOne({ email });
-    console.log(otp);
     if (existingOTP) {
-      existingOTP = await OTP.findOneAndUpdate(
-        { email },
-        { email, otp },
-        { new: true }
-      );
-    } else {
-      const newOTP = new OTP({
-        email,
-        otp,
-      });
-      existingOTP = await newOTP.save();
-    }
+      const currentTime = new Date();
+      const timeDiff = (currentTime - existingOTP.createdAt) / 1000;
 
-    await mailSender(
+      if (timeDiff < 30) {
+        return res.status(403).send({
+          message: `Please wait for ${
+            30 - Math.floor(timeDiff)
+          } seconds to send another OTP`,
+          success: false,
+        });
+      }
+      const otp = generateOTP();
+      await mailSender(
       email,
       "Password Reset OTP",
       `Your OTP for password reset is: ${otp}`
     );
+      const updatedOTP = await OTP.findOneAndUpdate(
+        { email },
+        { otp, createdAt: new Date() },
+        { new: true }
+      );
+
+      return res.status(200).send({
+        message: "New OTP has been sent successfully",
+        success: true,
+      });
+    } else {
+      const newOTP = new OTP({
+        email,
+        otp,
+        createdAt: new Date(),
+      });
+      await newOTP.save();
+      return res.status(200).send({
+        message: "OTP sent successfully",
+        success: true,
+      });
+    }
+
 
     res.status(200).json({ message: "OTP generated and sent successfully" });
   } catch (error) {

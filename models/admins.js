@@ -36,6 +36,9 @@ const adminSchema = new Schema({
   zone_id: {
     type: String,
   },
+  currentToken:{
+    type:String
+  }
 });
 
 module.exports = mongoose.model("Admin", adminSchema);
