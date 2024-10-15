@@ -405,12 +405,26 @@ router.post("/login", async (req, res) => {
           currentToken: token,
         });
         await newToken.save();
+
+        //! checking if industry is present in the industryBillAssociation
+        const industryBillAssociation = await IndustryBillAssociation.find({
+          plot_number: industry.plot_number,
+        });
+
+        let industryAssociatedWithBill = false;
+        if (industryBillAssociation.length === 0) {
+          industryAssociatedWithBill = false;
+        } else {
+          industryAssociatedWithBill = true;
+        }
+
         res.status(200).send({
           status: 200,
           industry: industry,
           token: token,
           userType: "Industry_User",
           otp: generateOtp,
+          industryAssociatedWithBill: industryAssociatedWithBill,
         });
       } catch (error) {
         console.log("Error Logging in to send message: ", error);
@@ -425,7 +439,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
-router.get("/getIndustryData", authMiddleware, async (req, res) => {
+router.get("/getIndustryData", async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
     const token = authHeader.split(" ")[1];
@@ -439,6 +453,12 @@ router.get("/getIndustryData", authMiddleware, async (req, res) => {
     const billAssociation = await IndustryBillAssociation.find({
       plot_number: plot_number, //This associates the bills with the industries based on plot numbers
     });
+
+    //! send the industry data without meterNo and consumerNo
+    if (billAssociation.length == 0) {
+      return res.status(200).json(industry);
+    }
+
     const updatedIndustry = {
       ...industry.toObject(),
       meterNo: billAssociation[0].meterNo,
@@ -495,7 +515,7 @@ router.put("/updateIndustryData", authMiddleware, async (req, res) => {
     );
     const plot_number = industry.plot_number;
 
-    await IndustryBillAssociation.findOneAndUpdate(
+    const result = await IndustryBillAssociation.findOneAndUpdate(
       { plot_number: plot_number },
       {
         $set: {
@@ -504,6 +524,15 @@ router.put("/updateIndustryData", authMiddleware, async (req, res) => {
         },
       }
     );
+    if (result == null || !result || result == undefined) {
+      const newBillAssociation = new IndustryBillAssociation({
+        plot_number,
+        consumerNo,
+        meterNo,
+      });
+      await newBillAssociation.save();
+    }
+
     const updatedIndustry = await Industry.findOneAndUpdate(
       { _id: industry_id },
       {

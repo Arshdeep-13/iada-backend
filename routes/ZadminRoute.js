@@ -341,7 +341,7 @@ router.post("/login", async (req, res) => {
             });
           } else {
             requestedAdmin.zone_name = zoneName.zone_name;
-            console.log("Admin" + requestedAdmin)
+            console.log("Admin" + requestedAdmin);
             const newToken = await Admin.findByIdAndUpdate(requestedAdmin.id, {
               currentToken: token,
             });
@@ -787,7 +787,6 @@ router.put("/updateAdminData", zonalAdminMiddleware, async (req, res) => {
   }
 });
 
-
 router.post(
   "/getIndustryWaterBill",
   zonalAdminMiddleware,
@@ -811,7 +810,7 @@ router.post(
           let counter = await readCounter();
           counter++;
           obj.no = counter;
-          obj.date = DateHandler(obj.date);
+          obj.date = obj.date ? DateHandler(obj.date) : new Date();
           obj.consumerNo = isNaN(parseInt(obj.consumerNo))
             ? null
             : parseInt(obj.consumerNo);
