@@ -297,6 +297,7 @@ router.post(
       .matches(/^[6789]\d{9}$/)
       .withMessage("Enter a valid phone number"),
     check("gstin_number")
+    .optional({ checkFalsy: true })
       .matches(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/)
       .withMessage("Enter a valid GSTIN number"),
   ],
